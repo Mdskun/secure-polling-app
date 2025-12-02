@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ poll.question }}</h2>
+
+<div id="poll-status" class="mb-3"></div>
+
+<form id="vote-form" method="POST" action="{{ url_for('polls.vote', poll_id=poll.id) }}">
+    <div hidden>{{ csrf_token() }}</div>
+    <div class="mb-3">
+        {% for option in poll.options %}
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="option" value="{{ option.id }}" id="option{{ option.id }}" required {% if user_voted %} disabled {% endif %}>
+                <label class="form-check-label" for="option{{ option.id }}">
+                    {{ option.text }}
+                </label>
+            </div>
+        {% endfor %}
+    </div>
+    <button id="vote-button" type="submit" class="btn btn-primary" {% if user_voted %} disabled {% endif %}>Vote</button>
+</form>
+
+{% if user_voted %}
+    <div class="alert alert-success mt-3">You already voted in this poll.</div>
+{% endif %}
+
+<h3 class="mt-5">Results</h3>
+<ul class="list-group">
+    {% for option in poll.options %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            {{ option.text }}
+            <span class="badge bg-primary rounded-pill">{{ option.votes|length }}</span>
+        </li>
+    {% endfor %}
+</ul>
+
+<script>
+// Poll window data (UTC)
+const startTime = {{ poll.start_time.isoformat()|tojson if poll.start_time else 'null' }};
+const endTime = {{ poll.end_time.isoformat()|tojson if poll.end_time else 'null' }};
+const nowUtc = {{ now_utc.isoformat()|tojson }};
+
+function parseISO(s) {
+    // returns Date object from ISO string; assumes trailing 'Z' or no timezone -> treat as UTC
+    return s ? new Date(s) : null;
+}
+
+function updateStatus() {
+    const now = new Date(Date.parse(nowUtc) + (Date.now() - Date.parse(nowUtc))); // ensures client tick from server-now baseline
+    const start = startTime ? parseISO(startTime) : null;
+    const end = endTime ? parseISO(endTime) : null;
+    const statusEl = document.getElementById('poll-status');
+    const voteButton = document.getElementById('vote-button');
+    const inputs = document.querySelectorAll('input[name="option"]');
+
+    function disableVoting(reason) {
+        voteButton.disabled = true;
+        inputs.forEach(i => i.disabled = true);
+        statusEl.innerHTML = '<div class="alert alert-warning">' + reason + '</div>';
+    }
+
+    function enableVoting() {
+        if (!{{ 'true' if user_voted else 'false' }})
+        {
+            voteButton.disabled = false;
+            inputs.forEach(i => i.disabled = false);
+        }
+        statusEl.innerHTML = '<div class="alert alert-success">Poll is active — you can vote now.</div>';
+    }
+
+    if (start && now < start) {
+        // time until start
+        const diff = start - now;
+        const secs = Math.floor(diff / 1000);
+        statusEl.innerHTML = '<div class="alert alert-info">Poll starts in <span id="countdown"></span></div>';
+        disableVoting("Poll has not started yet.");
+        startCountdown(diff, '#countdown', function(){
+            // reload after start (simple approach)
+            location.reload();
+        });
+        return;
+    }
+
+    if (end && now > end) {
+        disableVoting("Poll has ended.");
+        return;
+    }
+
+    // active
+    enableVoting();
+
+    if (end) {
+        const diff = end - now;
+        if (diff <= 0) {
+            disableVoting("Poll has ended.");
+            return;
+        }
+        statusEl.innerHTML = '<div class="alert alert-info">Time remaining: <span id="countdown-end"></span></div>';
+        startCountdown(diff, '#countdown-end', function(){
+            location.reload();
+        });
+    }
+
+}
+
+function startCountdown(durationMs, selector, onFinish) {
+    const el = document.querySelector(selector);
+    if (!el) return;
+    let remaining = Math.max(0, Math.floor(durationMs / 1000));
+    function tick() {
+        const d = Math.floor(remaining / (24*3600));
+        const h = Math.floor((remaining % (24*3600)) / 3600);
+        const m = Math.floor((remaining % 3600) / 60);
+        const s = Math.floor(remaining % 60);
+        el.textContent = `${d}d ${h}h ${m}m ${s}s`;
+        if (remaining <= 0) {
+            if (onFinish) onFinish();
+            return;
+        }
+        remaining -= 1;
+        setTimeout(tick, 1000);
+    }
+    tick();
+}
+
+// initialize using server-provided nowUtc baseline
+updateStatus();
+</script>
+
+{% endblock %}

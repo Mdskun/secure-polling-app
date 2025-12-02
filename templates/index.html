@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="mb-4">All Polls</h2>
+<div class="list-group">
+    {% for poll in polls %}
+        <a href="{{ url_for('polls.poll_detail', poll_id=poll.id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+            <div>
+                <div class="fw-bold">{{ poll.question }}</div>
+                <small class="text-muted">
+                    {% if poll.start_time %} Start: {{ poll.start_time }} {% else %} Start: — {% endif %}
+                    &nbsp;|&nbsp;
+                    {% if poll.end_time %} End: {{ poll.end_time }} {% else %} End: — {% endif %}
+                </small>
+            </div>
+            <span class="badge bg-primary rounded-pill">{{ poll.options|length }}</span>
+        </a>
+    {% else %}
+        <p>No polls available. Admin can <a href="{{ url_for('admin.new_poll') }}">create one</a>.</p>
+    {% endfor %}
+</div>
+{% endblock %}

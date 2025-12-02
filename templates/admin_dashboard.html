@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Admin Dashboard</h2>
+<a href="{{ url_for('admin.new_poll') }}" class="btn btn-success mb-3">Create New Poll</a>
+<a href="{{ url_for('admin.verify_ledger_route') }}" class="btn btn-info mb-3">Verify Ledger</a>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Question</th>
+            <th>Start</th>
+            <th>End</th>
+            <th>Options / Votes</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for poll in polls %}
+        <tr>
+            <td>{{ poll.question }}</td>
+            <td>{{ poll.start_time or '—' }}</td>
+            <td>{{ poll.end_time or '—' }}</td>
+            <td>
+                <ul>
+                {% for option in poll.options %}
+                    <li>{{ option.text }} — Votes: {{ option.votes|length }}</li>
+                {% endfor %}
+                </ul>
+            </td>
+            <td>
+                <a href="{{ url_for('admin.edit_poll', poll_id=poll.id) }}" class="btn btn-warning btn-sm">Edit</a>
+                <a href="{{ url_for('admin.delete_poll', poll_id=poll.id) }}" class="btn btn-danger btn-sm">Delete</a>
+                <a href="{{ url_for('polls.poll_detail', poll_id=poll.id) }}" class="btn btn-info btn-sm">View</a>
+                <a href="{{ url_for('admin.export_poll', poll_id=poll.id) }}" class="btn btn-secondary btn-sm">Export CSV</a>
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Create New Poll</h2>
+<form method="POST">
+    <div hidden>{{ csrf_token() }}</div>
+    <div class="mb-3">
+        <label class="form-label">Question</label>
+        <input type="text" class="form-control" name="question" required>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Start Time (optional)</label>
+        <input type="datetime-local" class="form-control" name="start_time">
+        <small class="form-text text-muted">Leave blank to start immediately. Times are interpreted as UTC.</small>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">End Time (optional)</label>
+        <input type="datetime-local" class="form-control" name="end_time">
+        <small class="form-text text-muted">Leave blank for no automatic end (open-ended).</small>
+    </div>
+
+    <div id="options">
+        <div class="mb-3">
+            <label class="form-label">Option 1</label>
+            <input type="text" class="form-control" name="options" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Option 2</label>
+            <input type="text" class="form-control" name="options" required>
+        </div>
+    </div>
+    <button type="button" class="btn btn-secondary mb-3" onclick="addOption()">Add More Option</button>
+    <br>
+    <button type="submit" class="btn btn-success">Create Poll</button>
+</form>
+
+<script>
+function addOption() {
+    const div = document.createElement('div');
+    div.className = 'mb-3';
+    const label = document.createElement('label');
+    label.className = 'form-label';
+    label.textContent = 'Option';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.name = 'options';
+    input.className = 'form-control';
+    input.required = true;
+    div.appendChild(label);
+    div.appendChild(input);
+    document.getElementById('options').appendChild(div);
+}
+</script>
+{% endblock %}

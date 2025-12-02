@@ -1,0 +1,34 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+secrets/
+
+# Virtualenv
+venv/
+env/
+/data/
+
+# Secrets or keys (only mounted at runtime, never baked into image)
+secrets/
+*.key
+*.pem
+
+# Local database files (use volume instead)
+*.db
+
+# Git artifacts
+.git/
+.gitignore
+
+# OS / IDE noise
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Logs
+logs/
+*.log
+
+.env

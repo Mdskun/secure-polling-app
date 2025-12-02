@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  poll-app:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      FLASK_ENV: production
+      ADMINU: admin
+      ADMINP: adminpass
+      SECRET_KEY: secretkey
+    volumes:
+      - poll_data:/data
+
+volumes:
+  poll_data:

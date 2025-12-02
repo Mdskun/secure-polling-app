@@ -1,0 +1,26 @@
+<table class="table">
+  <thead>
+    <tr>
+      <th>Question</th>
+      <th>Start</th>
+      <th>End</th>
+      <th>Votes</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for poll in polls %}
+    <tr>
+      <td>{{ poll.question }}</td>
+      <td>{{ poll.start_time }}</td>
+      <td>{{ poll.end_time }}</td>
+      <td>{{ poll.votes|length }}</td>
+      <td>
+        <a href="{{ url_for('admin.edit_poll', poll_id=poll.id) }}" class="btn btn-warning btn-sm">Edit</a>
+        <a href="{{ url_for('admin.delete_poll', poll_id=poll.id) }}" class="btn btn-danger btn-sm">Delete</a>
+        <a href="{{ url_for('polls.poll_detail', poll_id=poll.id) }}" class="btn btn-info btn-sm">View</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>

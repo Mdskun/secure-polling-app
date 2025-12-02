@@ -1,0 +1,9 @@
+Flask
+Flask-SQLAlchemy
+Flask-Login
+cryptography
+Flask-WTF
+WTForms
+python-dotenv
+gunicorn
+Flask-Migrate
