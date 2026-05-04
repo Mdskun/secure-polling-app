@@ -13,7 +13,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:////data/polls.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # Configure CSRF to work with regular HTML forms (not just WTForms)
-app.config['WTF_CSRF_CHECK_DEFAULT'] = False  # Don't check by default
+app.config['WTF_CSRF_CHECK_DEFAULT'] = True  # Enable CSRF protection by default
 csrf = CSRFProtect(app)
 
 db.init_app(app)
@@ -38,10 +38,12 @@ def health():
 @app.route("/ready")
 def ready():
     try:
-        db.session.execute('SELECT *')
+        # Simple health check - verify database connection
+        from sqlalchemy import text
+        db.session.execute(text('SELECT 1'))
         return {"status": "ready"}, 200
     except Exception as e:
-        return {"status": "not ready", "error": str(e)}, 503
+        return {"status": "not ready", "error": "Database connection failed"}, 503
 
 # Register blueprints
 app.register_blueprint(auth)

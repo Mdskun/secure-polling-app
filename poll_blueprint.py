@@ -30,51 +30,50 @@ def vote(poll_id):
         return "Poll has already ended.", 403
     
     option_id = request.form.get("option")
-    option = PollOption.query.filter_by(id=option_id, poll_id=poll_id).first()
-    if not option:
-        abort(400)
-        
-     # Check if user already voted (if logged in)
+    option = PollOption.query.filter_by(id=option_id, poll_id=poll_id).first_or_404()
+    
+    # Check if authenticated user already voted
     if current_user.is_authenticated:
         existing_vote = Vote.query.filter_by(poll_id=poll_id, user_id=current_user.id).first()
         if existing_vote:
-            return "❌ You have already voted in this poll!"
-
-    # If user isn't logged in, prevent per-IP or per-cookie cheating
-    if not current_user.is_authenticated:
+            return "❌ You have already voted in this poll!", 409
+    else:
+        # Check anonymous user via cookie
         if request.cookies.get(f"poll_{poll_id}_voted"):
-            return "❌ Anonymous users can only vote once!"
+            return "❌ You have already voted!", 409
         
-    # Ip-chekking
-    user_ip = request.remote_addr
-    existing_ip_vote = Vote.query.filter_by(poll_id=poll_id, ip_address=user_ip).first()
-    if existing_ip_vote and not current_user.is_authenticated:
-        return "❌ You already voted!"
-    
-    option = PollOption.query.filter_by(id=option_id, poll_id=poll_id).first_or_404()
+        # Check anonymous user via IP address
+        user_ip = request.remote_addr
+        existing_ip_vote = Vote.query.filter_by(poll_id=poll_id, ip_address=user_ip).first()
+        if existing_ip_vote:
+            return "❌ You have already voted!", 409
+
+    # Determine IP to log (only for anonymous users)
+    user_ip = request.remote_addr if not current_user.is_authenticated else None
 
     encrypted = encrypt_vote(str(option.id))
-    vote = Vote(poll_id=poll.id, option_id=option.id, encrypted_vote=encrypted)
-    if current_user.is_authenticated:
-        vote.user_id = current_user.id
-        ip_addr = request.remote_addr
-        vote.ip_address = ip_addr
-    else:
-        ip_addr = request.remote_addr
-        vote.ip_address = ip_addr
+    vote = Vote(
+        poll_id=poll.id,
+        option_id=option.id,
+        encrypted_vote=encrypted,
+        user_id=current_user.id if current_user.is_authenticated else None,
+        ip_address=user_ip
+    )
 
     db.session.add(vote)
     db.session.commit()
 
     # Append to ledger for audit trail
-    append_ledger_entry(encrypted_vote=encrypted,
-                        poll_id=poll.id,
-                        option_id=option.id,
-                        user_id=(current_user.id if current_user.is_authenticated else None),
-                        ip_address=ip_addr)
+    append_ledger_entry(
+        encrypted_vote=encrypted,
+        poll_id=poll.id,
+        option_id=option.id,
+        user_id=(current_user.id if current_user.is_authenticated else None),
+        ip_address=user_ip
+    )
 
     # Set cookie for anonymous users to prevent re-vote from same browser
     response = make_response(redirect(url_for("polls.poll_detail", poll_id=poll_id)))
     if not current_user.is_authenticated:
         response.set_cookie(f"poll_{poll_id}_voted", "true", max_age=60*60*24*7)
-    return redirect(url_for("polls.poll_detail", poll_id=poll_id))
+    return response
