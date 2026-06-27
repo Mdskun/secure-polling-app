@@ -5,6 +5,9 @@ on:
     branches: [ "main" ]
 
 env:
+  IMAGE: ${{ secrets.IMAGE }}
+  DOCKER_USER: ${{ secrets.DOCKER_USER }}
+  DOCKERPASS: ${{ secrets.DOCKERPASS }}
   TAG: "latest"
 
 jobs:
