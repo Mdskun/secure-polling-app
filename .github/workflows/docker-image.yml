@@ -5,7 +5,7 @@ on:
     branches: [ "main" ]
 
 env:
-  TAG: "latest"
+  TAG: "v1"
 
 jobs:
   build:
