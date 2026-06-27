@@ -5,7 +5,7 @@ on:
     branches: [ "main" ]
 
 env:
-  TAG: "v1"
+  TAG: "latest"
 
 jobs:
   build:
@@ -13,6 +13,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    
+    - name: Debug vars
+      run: echo "IMAGE=$IMAGE TAG=$TAG"
 
     - name: Build Docker image
       run: docker build . -t "$IMAGE:$TAG"
