@@ -1,6 +1,6 @@
 name: Docker Image CI
 env:
-  TAG: ${{ github.run_id }}
+  TAG: "v1.1"
 on:
   push:
     branches: [ "main" ]
