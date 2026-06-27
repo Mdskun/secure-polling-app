@@ -1,6 +1,6 @@
 name: Docker Image CI
 env:
-  TAG: "v1.1"
+  TAG: "v1"
 on:
   push:
     branches: [ "main" ]
