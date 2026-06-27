@@ -1,0 +1,29 @@
+name: Docker Image CI
+env:
+  TAG: ${{ github.run_id }}
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+
+  build:
+
+    runs-on: self-hosted
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag "$IMAGE:$TAG"
+    - name: Build the Docker image
+      run: echo "$DOCKERPASS" | docker login --username "$DOCKER_USER" --password-stdin
+    - name: Push docker image
+      run: docker push "$IMAGE:$TAG"
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Stop old container
+        run: docker stop myapp || true && docker rm myapp || true
+
+      - name: Run new container
+        run: docker run -d -p 80:3000 --name myapp "$IMAGE:$TAG"
