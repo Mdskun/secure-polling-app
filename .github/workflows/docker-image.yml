@@ -36,4 +36,4 @@ jobs:
         sudo docker pull "$IMAGE:$TAG"
         sudo docker stop myapp || true
         sudo docker rm myapp || true
-        sudo docker run -d -p 8089:3000 --name myapp "$IMAGE:$TAG"
+        sudo docker run -d -p 8089:5000 --name myapp "$IMAGE:$TAG"
