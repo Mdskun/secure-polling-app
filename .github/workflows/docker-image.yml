@@ -21,17 +21,17 @@ jobs:
       run: echo "IMAGE=""$IMAGE" "TAG=""$TAG"
 
     - name: Build Docker image
-      run: docker build . -t "$IMAGE:$TAG"
+      run: sudo docker build . -t "$IMAGE:$TAG"
 
     - name: Login to Docker
-      run: echo "$DOCKERPASS" | docker login --username "$DOCKER_USER" --password-stdin
+      run: echo "$DOCKERPASS" | sudo docker login --username "$DOCKER_USER" --password-stdin
 
     - name: Push image
-      run: docker push "$IMAGE:$TAG"
+      run: sudo docker push "$IMAGE:$TAG"
 
     - name: Deploy
       run: |
-        docker pull "$IMAGE:$TAG"
-        docker stop myapp || true
-        docker rm myapp || true
-        docker run -d -p 80:3000 --name myapp "$IMAGE:$TAG"
+        sudo docker pull "$IMAGE:$TAG"
+        sudo docker stop myapp || true
+        sudo docker rm myapp || true
+        sudo docker run -d -p 80:3000 --name myapp "$IMAGE:$TAG"
