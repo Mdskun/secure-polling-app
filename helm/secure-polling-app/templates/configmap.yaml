@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "secure-polling-app.configName" . }}
+  labels:
+    {{- include "secure-polling-app.labels" . | nindent 4 }}
+data:
+  FLASK_ENV: {{ .Values.env.FLASK_ENV | quote }}
+  PYTHONUNBUFFERED: "1"
+  DATA_DIR: {{ .Values.env.DATA_DIR | quote }}
+  {{- if .Values.env.DATABASE_URL }}
+  DATABASE_URL: {{ .Values.env.DATABASE_URL | quote }}
+  {{- end }}
+  GUNICORN_WORKERS: {{ .Values.env.GUNICORN_WORKERS | quote }}
+  GUNICORN_THREADS: {{ .Values.env.GUNICORN_THREADS | quote }}

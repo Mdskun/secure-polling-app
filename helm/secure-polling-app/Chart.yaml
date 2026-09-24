@@ -1,0 +1,28 @@
+apiVersion: v2
+name: secure-polling-app
+description: >
+  Kubernetes-native Helm chart for the Secure Polling App - a Flask voting
+  platform with Fernet-encrypted votes, one-vote enforcement and a
+  tamper-evident audit ledger. Runs on SQLite (single replica) or a shared
+  database (multi-replica).
+type: application
+version: 0.1.0
+
+# Keep in sync with the app version (see README).
+appVersion: "1.1.0"
+
+keywords:
+  - flask
+  - polling
+  - voting
+  - encryption
+  - fernet
+  - sqlite
+
+sources:
+  - https://github.com/mdskun/secure-polling-app
+
+annotations:
+  artifacthub.io/changes: |
+    - "Initial Helm chart: hardened deployment, init container DB bootstrap, probes, persistence, ingress"
+  artifacthub.io/containsSecurityUpdates: "true"

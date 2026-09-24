@@ -343,7 +343,26 @@ decrypted = cipher.decrypt(encrypted_vote).decode()
 docker-compose -f docker-compose.yml up -d
 ```
 
-### Kubernetes (Customize-ready)
+### Helm (recommended)
+
+A fully parameterized [Helm chart](helm/secure-polling-app/README.md) is
+included:
+
+```bash
+helm install poll helm/secure-polling-app \
+  --namespace polling --create-namespace \
+  --set image.repository=your-registry/poll-app \
+  --set image.tag=1.1.0 \
+  --set secrets.SECRET_KEY="$(openssl rand -hex 32)" \
+  --set secrets.ADMINP='A Very Strong Password! 123' \
+  --set secrets.POLL_ENCRYPTION_KEY="$(python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')"
+```
+
+The chart auto-generates and persists keys across upgrades, wires the same
+readiness/liveness probes, init-container DB bootstrap, PVC, non-root security
+contexts and Ingress, and guards against scaling SQLite beyond 1 replica.
+
+### Kubernetes (Kustomize)
 
 Production manifests live in [`k8s/`](./k8s/) and are applied with Kustomize:
 

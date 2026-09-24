@@ -1,0 +1,14 @@
+# Patterns to exclude when building the chart package (helm package).
+.DS_Store
+.git
+.gitignore
+*.tmp
+secrets.env
+k8s/
+screenshots/
+docs/
+tests/
+.venv
+venv/
+*.pyc
+__pycache__/

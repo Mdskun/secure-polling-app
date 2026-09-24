@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "secure-polling-app.fullname" . }}-test-connection"
+  labels:
+    {{- include "secure-polling-app.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command:
+        - wget
+        - --no-check-certificate
+        - --timeout=3
+        - --
+        # http endpoint ignores TLS; just proves the service routes.
+        - http://{{ include "secure-polling-app.fullname" . }}:{{ .Values.service.port }}/health
+  restartPolicy: Never

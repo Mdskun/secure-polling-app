@@ -1,0 +1,145 @@
+# -- Number of app replicas. SQLite is single-writer and uses a ReadWriteOnce
+# PVC, so keep this at 1 unless you set env.DATABASE_URL to a shared database
+# (see values.env.DATABASE_URL below).
+replicaCount: 1
+
+image:
+  # -- Container image. Change to your registry after building & pushing.
+  repository: poll-app
+  tag: "1.1.0-k8s"
+  pullPolicy: IfNotPresent
+
+# -- Overrides for the generated resource names.
+nameOverride: ""
+fullnameOverride: ""
+
+podAnnotations: {}
+podLabels: {}
+
+# -- Deployment strategy. Must stay "Recreate" while using SQLite on a
+# ReadWriteOnce volume (the new pod cannot attach the volume until the old
+# pod is gone).
+strategy:
+  type: Recreate
+
+podSecurityContext:
+  runAsNonRoot: true
+  # Matches the non-root appuser baked into the Dockerfile (UID/GID 10001).
+  # fsGroup makes the mounted PVC group-writable for that user.
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+init:
+  # -- Runs DB table creation + admin user bootstrap before the app starts.
+  enabled: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: http
+
+ingress:
+  enabled: false
+  # -- Set to your ingress controller class, e.g. "nginx".
+  className: ""
+  annotations: {}
+  hosts:
+    - host: polls.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  # See https://kubernetes.io/docs/concepts/services-networking/ingress/#tls
+  tls: []
+  #  - secretName: poll-tls
+  #    hosts:
+  #      - polls.example.com
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 512Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+# -- Non-secret application environment. Secrets (SECRET_KEY, ADMINU, ADMINP,
+# POLL_ENCRYPTION_KEY) are injected from the poll-secrets Secret instead.
+env:
+  FLASK_ENV: production
+  # -- Directory for the SQLite DB, Fernet key and audit ledger.
+  DATA_DIR: /data
+  # -- Leave empty for local SQLite. Set to a shared DB (e.g.
+  # postgresql://user:pass@db:5432/poll) before scaling beyond 1 replica.
+  DATABASE_URL: ""
+  # -- gunicorn worker/thread tuning.
+  GUNICORN_WORKERS: "4"
+  GUNICORN_THREADS: "4"
+
+# -- Extra environment variables merged into the app container
+# (list of name/value or name/valueFrom maps, as in pod env).
+extraEnv: []
+#  - name: POLL_ENCRYPTION_KEY_FILE
+#    value: /data/poll_encryption_key
+
+secrets:
+  # -- Name of an existing Secret to use instead of templating one. When set,
+  # the managed Secret is not created and the Secret must contain the keys
+  # SECRET_KEY, ADMINU, ADMINP, POLL_ENCRYPTION_KEY.
+  existingSecret: ""
+  # -- Flask session signing key. Leave empty to auto-generate on first
+  # install (persisted across upgrades via helm lookup). Provide a stable
+  # value to keep sessions valid across reinstalls.
+  SECRET_KEY: ""
+  # -- Bootstrap admin username (created by the init container).
+  ADMINU: admin
+  # -- Bootstrap admin password. Leave empty to auto-generate; retrieve it
+  # afterwards: kubectl get secret <release>-secrets -o jsonpath='{.data.ADMINP}' | base64 -d
+  ADMINP: ""
+  # -- Fernet key that decrypts stored votes. MUST stay stable for the life
+  # of the data - changing it makes existing votes unreadable. Strongly
+  # recommended, but if left empty a valid key is auto-generated and reused
+  # on upgrades. Generate one with:
+  #   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+  POLL_ENCRYPTION_KEY: ""
+
+persistence:
+  enabled: true
+  # -- StorageClass for the PVC. Empty = cluster default.
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 1Gi
+
+# -- Resources for the probe checks / default node placement.
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+serviceAccount:
+  # -- The app does not talk to the Kubernetes API; a ServiceAccount is
+  # optional. When disabled the cluster default account is used.
+  create: false
+  name: ""
+  annotations: {}

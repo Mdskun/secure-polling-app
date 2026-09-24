@@ -1,0 +1,33 @@
+{{- if .Values.secrets.existingSecret }}
+Secret "{{ .Values.secrets.existingSecret }}" will be used (expected keys: SECRET_KEY, ADMINU, ADMINP, POLL_ENCRYPTION_KEY).
+{{- else }}
+A Secret named "{{ include "secure-polling-app.secretName" . }}" was generated. Admin credentials / keys are resolved in this order:
+  1. Explicit values (secrets.SECRET_KEY, secrets.ADMINP, secrets.POLL_ENCRYPTION_KEY)
+  2. Values already stored in the Secret (auto-generated values persist across `helm upgrade`)
+  3. Fresh auto-generated values (first install)
+
+Retrieve auto-generated admin credentials:
+  kubectl get secret {{ include "secure-polling-app.secretName" . }} -n {{ .Release.Namespace }} -o jsonpath='{.data.ADMINU}' | base64 -d; echo
+  kubectl get secret {{ include "secure-polling-app.secretName" . }} -n {{ .Release.Namespace }} -o jsonpath='{.data.ADMINP}' | base64 -d; echo
+{{- end }}
+
+1. Watch the deployment become ready:
+     kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }} -w
+
+2. Get the application URL:
+{{- if .Values.ingress.enabled }}
+     https://{{ (first .Values.ingress.hosts).host }}
+{{- else }}
+     kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "secure-polling-app.fullname" . }} 8080:{{ .Values.service.port }}
+     then open http://localhost:8080
+{{- end }}
+
+3. Sanity checks:
+     kubectl get svc {{ include "secure-polling-app.fullname" . }} -n {{ .Release.Namespace }}
+     curl -s http://localhost:8080/ready      # 200 -> database reachable
+
+IMPORTANT
+  - POLL_ENCRYPTION_KEY decrypts stored votes. If you later override it in
+    values, existing votes become unreadable. Never rotate it unless you intend to.
+  - Only scale replicaCount beyond 1 after setting env.DATABASE_URL to a shared
+    database - SQLite is single-writer.
