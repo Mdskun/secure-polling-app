@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: poll-service
+  labels:
+    app: poll-app
+    app.kubernetes.io/name: secure-polling-app
+spec:
+  type: ClusterIP
+  selector:
+    app: poll-app
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

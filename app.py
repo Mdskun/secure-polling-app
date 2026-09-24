@@ -9,7 +9,9 @@ from flask_wtf.csrf import CSRFProtect
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "fallback-dev-key-change-me")
-app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:////data/polls.db"
+# Default to the SQLite file under /data (single-replica). For horizontal
+# scaling set DATABASE_URL to a shared DB (e.g. postgresql://...).
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL", "sqlite:////data/polls.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # Configure CSRF to work with regular HTML forms (not just WTForms)

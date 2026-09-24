@@ -1,0 +1,30 @@
+# Optional Ingress. Set the host to your domain and choose the correct
+# ingressClassName for your cluster (nginx, traefik, haproxy, ...).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: poll-ingress
+  labels:
+    app: poll-app
+    app.kubernetes.io/name: secure-polling-app
+  # Uncomment to request a TLS certificate from cert-manager (Let's Encrypt)
+  # annotations:
+  #   cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  # ingressClassName: nginx
+  rules:
+    - host: polls.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: poll-service
+                port:
+                  name: http
+  # TLS terminates at the Ingress; the app itself serves plain HTTP inside.
+  # tls:
+  #   - hosts:
+  #       - polls.example.com
+  #     secretName: poll-tls

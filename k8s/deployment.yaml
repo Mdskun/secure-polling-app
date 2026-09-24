@@ -1,0 +1,126 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: poll-app
+  labels:
+    app: poll-app
+    app.kubernetes.io/name: secure-polling-app
+spec:
+  # SQLite is single-writer and lives on a single RWO volume, so the app
+  # MUST run exactly 1 replica / no rolling surge. Regain horizontal scaling
+  # by switching to a shared DB via the DATABASE_URL config map entry.
+  replicas: 1
+  # Recreate (not RollingUpdate): the PVC can only be attached to one node at
+  # a time, so the new pod must wait for the old one to fully terminate.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: poll-app
+  template:
+    metadata:
+      labels:
+        app: poll-app
+        app.kubernetes.io/name: secure-polling-app
+    spec:
+      # Match the non-root appuser (UID/GID 10001) baked into the image.
+      # fsGroup makes the mounted PVC group-writable for that user.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        # Runs once before the app: create DB tables + bootstrap admin user.
+        # Idempotent, so it is safe across restarts and reschedules.
+        - name: db-init
+          image: poll-app:1.1.0-k8s
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c", "python init_db.py && python create_admin.py"]
+          envFrom:
+            - configMapRef:
+                name: poll-config
+            - secretRef:
+                name: poll-secrets
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: tmp
+              mountPath: /tmp
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+      containers:
+        - name: poll-app
+          image: poll-app:1.1.0-k8s
+          imagePullPolicy: IfNotPresent
+          # Command overrides the image ENTRYPOINT (entrypoint.sh) so the
+          # app just serves traffic. Key/DB/admin bootstrap happens in the
+          # init container; no key file is written to the shared volume.
+          command: ["gunicorn"]
+          args: ["-c", "gunicorn.conf.py", "wsgi:app"]
+          envFrom:
+            - configMapRef:
+                name: poll-config
+            - secretRef:
+                name: poll-secrets
+          ports:
+            - name: http
+              containerPort: 5000
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 2
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: poll-data
+        - name: tmp
+          emptyDir: {}

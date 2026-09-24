@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: poll-config
+  labels:
+    app: poll-app
+    app.kubernetes.io/name: secure-polling-app
+data:
+  # Non-secret application configuration. Secrets (SECRET_KEY, ADMINU,
+  # ADMINP, POLL_ENCRYPTION_KEY) are provided via the poll-secrets Secret.
+  FLASK_ENV: "production"
+  PYTHONUNBUFFERED: "1"
+  DATA_DIR: "/data"
+  # Uncomment to use a shared database instead of the local SQLite file.
+  # Required if you ever scale beyond 1 replica (SQLite is single-writer).
+  # DATABASE_URL: "postgresql://poll:PASSWORD@postgres:5432/poll"

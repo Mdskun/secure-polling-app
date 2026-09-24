@@ -11,8 +11,9 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-KEY_FILE_PATH = "/data/poll_encryption_key"
-LEDGER_PATH = "/data/ledger.jsonl"
+DATA_DIR = os.environ.get("DATA_DIR", "/data")
+KEY_FILE_PATH = os.environ.get("POLL_ENCRYPTION_KEY_FILE", os.path.join(DATA_DIR, "poll_encryption_key"))
+LEDGER_PATH = os.environ.get("LEDGER_PATH", os.path.join(DATA_DIR, "ledger.jsonl"))
 
 # Thread lock for ledger file operations (prevent race conditions)
 LEDGER_LOCK = Lock()
@@ -20,11 +21,20 @@ LEDGER_LOCK = Lock()
 def load_key():
     """
     Load encryption key from (highest priority -> lowest):
-    1. Kubernetes/Docker Secrets file
-    2. Environment variable
+    1. Environment variable (K8s Secret / CI / secret manager)
+    2. Mounted key file (Docker volume, local dev)
     3. Fail with error (no generation)
     """
-    # 1️⃣ Try Kubernetes/Docker Secrets file
+    # 1️⃣ Environment variable - explicit, always wins over a stale file
+    key = os.getenv("POLL_ENCRYPTION_KEY")
+    if key:
+        try:
+            return key.encode() if isinstance(key, str) else key
+        except Exception as e:
+            logger.error(f"Failed to encode encryption key: {e}")
+            raise RuntimeError("Invalid encryption key format.")
+
+    # 2️⃣ Mounted key file (Kubernetes/Docker secret or volume)
     if os.path.exists(KEY_FILE_PATH):
         try:
             with open(KEY_FILE_PATH, "rb") as file:
@@ -35,17 +45,8 @@ def load_key():
             logger.error(f"Failed to read encryption key file: {e}")
             raise RuntimeError("Failed to read encryption key file.")
 
-    # 2️⃣ Try environment variable
-    key = os.getenv("POLL_ENCRYPTION_KEY")
-    if key:
-        try:
-            return key.encode() if isinstance(key, str) else key
-        except Exception as e:
-            logger.error(f"Failed to encode encryption key: {e}")
-            raise RuntimeError("Invalid encryption key format.")
-
     # 3️⃣ No key found - fail
-    raise RuntimeError("❌ No encryption key found! Set POLL_ENCRYPTION_KEY env var or mount key file at /data/poll_encryption_key")
+    raise RuntimeError("No encryption key found! Set POLL_ENCRYPTION_KEY env var or mount key file at /data/poll_encryption_key")
 
 try:
     CIPHER = Fernet(load_key())
@@ -176,7 +177,7 @@ def append_ledger_entry(
             }
 
             # Ensure directory exists
-            os.makedirs(os.path.dirname(LEDGER_PATH) or "/data", exist_ok=True)
+            os.makedirs(os.path.dirname(LEDGER_PATH) or DATA_DIR, exist_ok=True)
 
             # Append as JSON line
             with open(LEDGER_PATH, "a", encoding="utf-8") as f:

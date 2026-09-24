@@ -1,0 +1,33 @@
+# Kustomize entry point.
+#
+#   kubectl apply -k k8s/
+#
+# Secrets are generated from k8s/secrets.env (gitignored). Create it from
+# the example and never commit real values:
+#
+#   cp k8s/secrets.env.example k8s/secrets.env
+#   vim k8s/secrets.env
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - persistent-volume-claim.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+
+namespace: polling
+
+# Point at your registry image once built & pushed.
+# images:
+#   - name: poll-app
+#     newName: ghcr.io/your-org/secure-polling-app
+#     newTag: 1.1.0
+
+secretGenerator:
+  - name: poll-secrets
+    envs:
+      - secrets.env
+    type: Opaque

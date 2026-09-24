@@ -214,3 +214,5 @@ data/
 *.db
 *.log
 .DS_Store
+# Kubernetes local secrets (never commit real values)
+k8s/secrets.env

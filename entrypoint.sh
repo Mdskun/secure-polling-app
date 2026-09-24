@@ -4,8 +4,13 @@ KEY_PATH="/data/poll_encryption_key"
 # Create directory if missing
 mkdir -p $(dirname "$KEY_PATH")
 
+# If a key is supplied via the POLL_ENCRYPTION_KEY env var (K8s Secret,
+# secret managers, CI), prefer it and skip file generation so the env value
+# is never shadowed by a stale file.
+if [ -n "$POLL_ENCRYPTION_KEY" ]; then
+    echo "Using POLL_ENCRYPTION_KEY from environment."
 # If no key exists, generate a new one
-if [ ! -f "$KEY_PATH" ]; then
+elif [ ! -f "$KEY_PATH" ]; then
     echo "Generating new encryption key..."
     python3 - <<EOF
 from cryptography.fernet import Fernet

@@ -343,24 +343,26 @@ decrypted = cipher.decrypt(encrypted_vote).decode()
 docker-compose -f docker-compose.yml up -d
 ```
 
-<!-- ### Kubernetes (Optional)
+### Kubernetes (Customize-ready)
+
+Production manifests live in [`k8s/`](./k8s/) and are applied with Kustomize:
 
 ```bash
-# Build and push image
-docker build -t your-registry/polling-app:1.1 .
-docker push your-registry/polling-app:1.1
+docker build -t your-registry/secure-polling-app:1.1.0 .
+docker push your-registry/secure-polling-app:1.1.0
 
-# Create secrets
-kubectl create secret generic poll-secrets \
-  --from-literal=SECRET_KEY=your-key \
-  --from-literal=ADMINU=admin \
-  --from-literal=ADMINP=securepass
+cp k8s/secrets.env.example k8s/secrets.env   # fill in strong random values
+vim k8s/secrets.env
 
-# Deploy (manifests not included, create your own)
-kubectl apply -f k8s/deployment.yaml
-kubectl apply -f k8s/service.yaml
-kubectl apply -f k8s/ingress.yaml
-``` -->
+kubectl apply -k k8s/
+kubectl get pods -n polling -w
+```
+
+The stack includes a namespace, ConfigMap, PVC, hardened Deployment (non-root,
+`readOnlyRootFilesystem`, probes via `/health` + `/ready`, idempotent `db-init`
+init container), a Service, an optional Ingress, and secret generation from the
+gitignored `k8s/secrets.env`. See [`k8s/README.md`](./k8s/README.md) for
+scaling, TLS and upgrade notes.
 
 ### Environment Checklist
 
