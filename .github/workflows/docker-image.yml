@@ -12,13 +12,15 @@ env:
 
 jobs:
   build:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Debug vars
       run: echo "IMAGE=""$IMAGE" "TAG=""$TAG"
+
+    # docker Image build
 
     - name: Build Docker image
       run: sudo docker build --network=host . -t "$IMAGE:$TAG"
@@ -28,12 +30,23 @@ jobs:
 
     - name: Push image
       run: sudo docker push "$IMAGE:$TAG"
-  Deploy:
-    runs-on: self-hosted
-    steps:
-    - name: Deploy
-      run: |
-        sudo docker pull "$IMAGE:$TAG"
-        sudo docker stop myapp || true
-        sudo docker rm myapp || true
-        sudo docker run -d -p 8089:5000 --name myapp "$IMAGE:$TAG"
+
+    # helm
+
+    - name: Package Helm chart
+      run: helm package ./helm
+
+    - name: Upload Helm artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: helm-chart
+        path: "*.tgz"
+  # Deploy:
+  #   runs-on: self-hosted
+  #   steps:
+  #   - name: Deploy
+  #     run: |
+  #       sudo docker pull "$IMAGE:$TAG"
+  #       sudo docker stop myapp || true
+  #       sudo docker rm myapp || true
+  #       sudo docker run -d -p 8089:5000 --name myapp "$IMAGE:$TAG"
