@@ -5,8 +5,8 @@ replicaCount: 1
 
 image:
   # -- Container image. Change to your registry after building & pushing.
-  repository: poll-app
-  tag: "1.1.0-k8s"
+  repository:  mdskun/secure-polling-app
+  tag: "latest"
   pullPolicy: IfNotPresent
 
 # -- Overrides for the generated resource names.
