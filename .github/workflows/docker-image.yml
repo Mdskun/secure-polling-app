@@ -34,7 +34,7 @@ jobs:
     # helm
 
     - name: Package Helm chart
-      run: helm package ./helm
+      run: helm package ./helm/secure-polling-app
 
     - name: Upload Helm artifact
       uses: actions/upload-artifact@v4
